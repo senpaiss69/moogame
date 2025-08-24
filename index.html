@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cow Run: Moo Adventure</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        canvas {
+            background-color: #87CEEB;
+            display: block;
+        }
+        
+        #scoreBoard {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 20px;
+            border-radius: 15px;
+            color: white;
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            min-width: 160px;
+        }
+        
+        #scoreDisplay {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD700;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        #highScoreDisplay {
+            font-size: 18px;
+            color: #4CAF50;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        #coinsDisplay {
+            font-size: 18px;
+            color: #BB86FC;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            margin-top: 5px;
+        }
+        
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            text-align: center;
+            z-index: 10;
+        }
+        
+        #gameOverScreen {
+            display: none;
+        }
+        
+        h1 {
+            font-size: 52px;
+            margin-bottom: 20px;
+            color: #FFD700;
+            text-shadow: 3px 3px 0 #000, 5px 5px 0 rgba(0, 0, 0, 0.3);
+            letter-spacing: 2px;
+        }
+        
+        h2 {
+            font-size: 42px;
+            margin-bottom: 20px;
+            color: #FF5252;
+            text-shadow: 2px 2px 0 #000;
+        }
+        
+        p {
+            font-size: 24px;
+            margin-bottom: 30px;
+            max-width: 80%;
+            line-height: 1.5;
+        }
+        
+        .button {
+            padding: 15px 40px;
+            font-size: 22px;
+            background: linear-gradient(to bottom, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            margin: 10px;
+            font-weight: bold;
+        }
+        
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(to bottom, #66BB6A, #388E3C);
+        }
+        
+        .commonLogo {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(187, 134, 252, 0.3);
+        }
+        
+        .commonLogoText {
+            font-size: 20px;
+            color: #BB86FC;
+            font-weight: bold;
+            margin-left: 10px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        #soundToggle {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            font-size: 24px;
+        }
+        
+        #soundToggle:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+        
+        .instructions {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 20px;
+            max-width: 80%;
+        }
+        
+        .instructions p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        
+        <div id="scoreBoard">
+            <div id="scoreDisplay">Score: 0</div>
+            <div id="highScoreDisplay">High Score: 0</div>
+            <div id="coinsDisplay">Coins: 0</div>
+        </div>
+        
+        <div id="startScreen">
+            <h1>COW RUN: MOO ADVENTURE</h1>
+            <p>Help the cow avoid obstacles and collect Moo coins with the Common.xyz logo!</p>
+            <button class="button" onclick="startGame()">START GAME</button>
+            
+            <div class="instructions">
+                <p>Press SPACE or CLICK to jump</p>
+                <p>Collect coins for points and avoid obstacles</p>
+            </div>
+        </div>
+        
+        <div id="gameOverScreen">
+            <h2>GAME OVER!</h2>
+            <p id="finalScore">Your score: 0</p>
+            <p id="coinsCollected">Coins collected: 0</p>
+            <button class="button" onclick="restartGame()">PLAY AGAIN</button>
+        </div>
+        
+        <div class="commonLogo">
+            <svg width="30" height="30" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#BB86FC" stroke-width="8" />
+                <path d="M 30 50 A 20 20 0 1 1 70 50" stroke="#BB86FC" stroke-width="8" fill="none" />
+                <circle cx="70" cy="50" r="5" fill="#BB86FC" />
+            </svg>
+            <span class="commonLogoText">Common.xyz</span>
+        </div>
+        
+        <div id="soundToggle" onclick="toggleSound()">🔊</div>
+    </div>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const highScoreDisplay = document.getElementById('highScoreDisplay');
+        const coinsDisplay = document.getElementById('coinsDisplay');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScore = document.getElementById('finalScore');
+        const coinsCollected = document.getElementById('coinsCollected');
+        const soundToggle = document.getElementById('soundToggle');
+        
+        let gameSpeed = 6;
+        let score = 0;
+        let highScore = 0;
+        let coins = 0;
+        let gameOver = false;
+        let gameStarted = false;
+        let animationId;
+        let soundEnabled = true;
+        
+        // Colors
+        const SKY_BLUE = '#87CEEB';
+        const GREEN = '#4CAF50';
+        const BROWN = '#8D6E63';
+        const WHITE = '#FFFFFF';
+        const BLACK = '#000000';
+        const RED = '#FF5252';
+        const YELLOW = '#FFD700';
+        const PURPLE = '#BB86FC';
+        const LIGHT_PURPLE = '#D8BFD8';
+        
+        // Background music
+        function createBGM() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(330, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.start();
+            
+            return { audioContext, oscillator, gainNode };
+        }
+        
+        let bgm = null;
+        
+        // Cow object
+        const cow = {
+            x: 80,
+            y: canvas.height - 150,
+            width: 50,
+            height: 40,
+            velocity: 0,
+            gravity: 1,
+            jumpStrength: -18,
+            isJumping: false,
+            mooTimer: 0,
+            
+            jump: function() {
+                if (!this.isJumping) {
+                    this.velocity = this.jumpStrength;
+                    this.isJumping = true;
+                    playJumpSound();
+                }
+            },
+            
+            update: function() {
+                // Apply gravity
+                this.velocity += this.gravity;
+                this.y += this.velocity;
+                
+                // Check if cow is on the ground
+                if (this.y >= canvas.height - 150) {
+                    this.y = canvas.height - 150;
+                    this.velocity = 0;
+                    this.isJumping = false;
+                }
+                
+                // Random moo
+                this.mooTimer++;
+                if (this.mooTimer > 300 && Math.random() < 0.01) {
+                    playMooSound();
+                    this.mooTimer = 0;
+                }
+            },
+            
+            draw: function() {
+                // Draw cow body
+                ctx.fillStyle = WHITE;
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y, this.width/2, this.height/2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = BLACK;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw cow head
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2 + 10, this.y - 5, 20, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Draw cow spots
+                ctx.fillStyle = BLACK;
+                ctx.beginPath();
+                ctx.ellipse(this.x - 10, this.y - 5, 5, 7.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.ellipse(this.x + 10, this.y + 5, 7.5, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw cow eyes
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2 + 5, this.y - 10, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw cow legs
+                ctx.fillStyle = WHITE;
+                ctx.fillRect(this.x - 15, this.y + this.height/2, 8, 30);
+                ctx.fillRect(this.x + 7, this.y + this.height/2, 8, 30);
+                
+                ctx.strokeStyle = BLACK;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x - 15, this.y + this.height/2, 8, 30);
+                ctx.strokeRect(this.x + 7, this.y + this.height/2, 8, 30);
+                
+                // Draw cow tail
+                ctx.beginPath();
+                ctx.moveTo(this.x - 20, this.y);
+                ctx.lineTo(this.x - 35, this.y - 15);
+                ctx.stroke();
+                
+                // Draw "Moo!" text occasionally
+                if (this.mooTimer < 30) {
+                    ctx.fillStyle = BLACK;
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText('Moo!', this.x + this.width/2 + 10, this.y - 35);
+                }
+            }
+        };
+        
+        // Obstacles array
+        let obstacles = [];
+        
+        // Obstacle class
+        class Obstacle {
+            constructor(x) {
+                this.x = x;
+                this.y = canvas.height - 150;
+                this.width = 40;
+                this.height = 40;
+            }
+            
+            update() {
+                this.x -= gameSpeed;
+            }
+            
+            draw() {
+                // Draw hay bale
+                ctx.fillStyle = BROWN;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                ctx.strokeStyle = YELLOW;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(this.x + 5, this.y + this.height/2);
+                ctx.lineTo(this.x + this.width - 5, this.y + this.height/2);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.width/2, this.y + 5);
+                ctx.lineTo(this.x + this.width/2, this.y + this.height - 5);
+                ctx.stroke();
+            }
+            
+            collide() {
+                return (
+                    cow.x < this.x + this.width &&
+                    cow.x + cow.width > this.x &&
+                    cow.y < this.y + this.height &&
+                    cow.y + cow.height > this.y
+                );
+            }
+        }
+        
+        // Coins array
+        let mooCoins = [];
+        
+        // Coin class
+        class MooCoin {
+            constructor(x) {
+                this.x = x;
+                this.y = Math.random() * (canvas.height - 250) + 100;
+                this.radius = 15;
+                this.angle = 0;
+            }
+            
+            update() {
+                this.x -= gameSpeed;
+                this.angle += 0.1;
+            }
+            
+            draw() {
+                // Draw coin
+                ctx.fillStyle = YELLOW;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = BLACK;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw Common.xyz inspired "C"
+                ctx.strokeStyle = PURPLE;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius - 5, Math.PI/4, (7*Math.PI)/4);
+                ctx.stroke();
+                
+                // Draw dot for the "i" in Common.xyz
+                ctx.fillStyle = PURPLE;
+                ctx.beginPath();
+                ctx.arc(this.x + 5, this.y - 8, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw "MOO" text
+                ctx.save();
+                ctx.translate(this.x, this.y - this.radius - 20);
+                ctx.rotate(this.angle);
+                ctx.fillStyle = PURPLE;
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('MOO', -20, 0);
+                ctx.restore();
+            }
+            
+            collect() {
+                const distance = Math.sqrt(
+                    Math.pow(cow.x + cow.width/2 - this.x, 2) + 
+                    Math.pow(cow.y + cow.height/2 - this.y, 2)
+                );
+                return distance < (cow.width/2 + this.radius);
+            }
+        }
+        
+        // Clouds array
+        let clouds = [];
+        
+        // Cloud class
+        class Cloud {
+            constructor() {
+                this.x = canvas.width + Math.random() * 300;
+                this.y = Math.random() * 150 + 20;
+                this.speed = Math.random() * 1 + 0.5;
+                this.size = Math.random() * 20 + 20;
+            }
+            
+            update() {
+                this.x -= this.speed;
+                if (this.x < -100) {
+                    this.x = canvas.width + Math.random() * 100;
+                    this.y = Math.random() * 150 + 20;
+                }
+            }
+            
+            draw() {
+                ctx.fillStyle = WHITE;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.arc(this.x + this.size * 0.8, this.y - this.size * 0.5, this.size * 0.7, 0, Math.PI * 2);
+                ctx.arc(this.x + this.size * 0.8, this.y + this.size * 0.5, this.size * 0.7, 0, Math.PI * 2);
+                ctx.arc(this.x + this.size * 1.6, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Create initial clouds
+        for (let i = 0; i < 5; i++) {
+            clouds.push(new Cloud());
+        }
+        
+        // Sound functions
+        function playJumpSound() {
+            if (!soundEnabled) return;
+            
+            const oscillator = new (window.AudioContext || window.webkitAudioContext)().createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(400, oscillator.context.currentTime);
+            oscillator.connect(oscillator.context.destination);
+            oscillator.start();
+            oscillator.stop(oscillator.context.currentTime + 0.1);
+        }
+        
+        function playCoinSound() {
+            if (!soundEnabled) return;
+            
+            const oscillator = new (window.AudioContext || window.webkitAudioContext)().createOscillator();
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(800, oscillator.context.currentTime);
+            oscillator.connect(oscillator.context.destination);
+            oscillator.start();
+            oscillator.stop(oscillator.context.currentTime + 0.1);
+        }
+        
+        function playMooSound() {
+            if (!soundEnabled) return;
+            
+            const oscillator = new (window.AudioContext || window.webkitAudioContext)().createOscillator();
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(150, oscillator.context.currentTime);
+            oscillator.connect(oscillator.context.destination);
+            oscillator.start();
+            oscillator.stop(oscillator.context.currentTime + 0.5);
+        }
+        
+        function playGameOverSound() {
+            if (!soundEnabled) return;
+            
+            const oscillator = new (window.AudioContext || window.webkitAudioContext)().createOscillator();
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(200, oscillator.context.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(50, oscillator.context.currentTime + 0.7);
+            oscillator.connect(oscillator.context.destination);
+            oscillator.start();
+            oscillator.stop(oscillator.context.currentTime + 0.7);
+        }
+        
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+            
+            if (soundEnabled && bgm) {
+                bgm.gainNode.gain.setValueAtTime(0.1, bgm.audioContext.currentTime);
+            } else if (bgm) {
+                bgm.gainNode.gain.setValueAtTime(0, bgm.audioContext.currentTime);
+            }
+        }
+        
+        // Game functions
+        function startGame() {
+            startScreen.style.display = 'none';
+            gameStarted = true;
+            gameOver = false;
+            score = 0;
+            coins = 0;
+            gameSpeed = 6;
+            obstacles = [];
+            mooCoins = [];
+            
+            // Start background music
+            if (soundEnabled && !bgm) {
+                bgm = createBGM();
+            }
+            
+            // Add initial obstacle and coin
+            obstacles.push(new Obstacle(canvas.width + 100));
+            mooCoins.push(new MooCoin(canvas.width + 300));
+            
+            updateDisplays();
+            gameLoop();
+        }
+        
+        function restartGame() {
+            gameOverScreen.style.display = 'none';
+            gameStarted = true;
+            gameOver = false;
+            score = 0;
+            coins = 0;
+            gameSpeed = 6;
+            obstacles = [];
+            mooCoins = [];
+            
+            // Reset cow position
+            cow.y = canvas.height - 150;
+            cow.velocity = 0;
+            cow.isJumping = false;
+            
+            // Add initial obstacle and coin
+            obstacles.push(new Obstacle(canvas.width + 100));
+            mooCoins.push(new MooCoin(canvas.width + 300));
+            
+            updateDisplays();
+            gameLoop();
+        }
+        
+        function endGame() {
+            gameOver = true;
+            gameStarted = false;
+            cancelAnimationFrame(animationId);
+            
+            // Update high score
+            if (score > highScore) {
+                highScore = Math.floor(score);
+            }
+            
+            // Show game over screen
+            finalScore.textContent = `Your score: ${Math.floor(score)}`;
+            coinsCollected.textContent = `Coins collected: ${coins}`;
+            gameOverScreen.style.display = 'flex';
+            
+            playGameOverSound();
+            
+            updateDisplays();
+        }
+        
+        function updateDisplays() {
+            scoreDisplay.textContent = `Score: ${Math.floor(score)}`;
+            highScoreDisplay.textContent = `High Score: ${Math.floor(highScore)}`;
+            coinsDisplay.textContent = `Coins: ${coins}`;
+        }
+        
+        function drawBackground() {
+            // Draw sky
+            ctx.fillStyle = SKY_BLUE;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw sun
+            ctx.fillStyle = YELLOW;
+            ctx.beginPath();
+            ctx.arc(700, 80, 40, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw clouds
+            clouds.forEach(cloud => cloud.draw());
+            
+            // Draw ground
+            ctx.fillStyle = GREEN;
+            ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
+            
+            // Draw grass details
+            ctx.strokeStyle = '#2E7D32';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < canvas.width; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(i, canvas.height - 100);
+                ctx.lineTo(i + 10, canvas.height - 115);
+                ctx.stroke();
+            }
+        }
+        
+        function updateGame() {
+            // Update cow
+            cow.update();
+            
+            // Update obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].update();
+                
+                // Remove obstacles that are off-screen
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                }
+                
+                // Check for collision
+                else if (obstacles[i].collide()) {
+                    endGame();
+                    return;
+                }
+            }
+            
+            // Update coins
+            for (let i = mooCoins.length - 1; i >= 0; i--) {
+                mooCoins[i].update();
+                
+                // Remove coins that are off-screen
+                if (mooCoins[i].x + mooCoins[i].radius < 0) {
+                    mooCoins.splice(i, 1);
+                }
+                
+                // Check for collection
+                else if (mooCoins[i].collect()) {
+                    mooCoins.splice(i, 1);
+                    score += 5;
+                    coins += 1;
+                    playCoinSound();
+                    updateDisplays();
+                }
+            }
+            
+            // Update clouds
+            clouds.forEach(cloud => cloud.update());
+            
+            // Add new obstacles
+            if (obstacles.length < 3 && obstacles[obstacles.length - 1].x < canvas.width - 300) {
+                obstacles.push(new Obstacle(canvas.width + Math.random() * 200 + 100));
+            }
+            
+            // Add new coins
+            if (mooCoins.length < 2 && (mooCoins.length === 0 || mooCoins[mooCoins.length - 1].x < canvas.width - 400)) {
+                mooCoins.push(new MooCoin(canvas.width + Math.random() * 300 + 200));
+            }
+            
+            // Increase game speed over time
+            if (score > 0 && score % 10 === 0) {
+                gameSpeed = 6 + (score / 10) * 0.5;
+            }
+            
+            // Update score
+            score += 0.02;
+            updateDisplays();
+        }
+        
+        function drawGame() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
+            drawBackground();
+            
+            // Draw obstacles
+            obstacles.forEach(obstacle => obstacle.draw());
+            
+            // Draw coins
+            mooCoins.forEach(coin => coin.draw());
+            
+            // Draw cow
+            cow.draw();
+        }
+        
+        function gameLoop() {
+            if (gameStarted && !gameOver) {
+                updateGame();
+                drawGame();
+                animationId = requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (!gameStarted && startScreen.style.display !== 'none') {
+                    startGame();
+                } else if (gameStarted && !gameOver) {
+                    cow.jump();
+                } else if (gameOver) {
+                    restartGame();
+                }
+            }
+        });
+        
+        // Touch support for mobile devices
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!gameStarted && startScreen.style.display !== 'none') {
+                startGame();
+            } else if (gameStarted && !gameOver) {
+                cow.jump();
+            } else if (gameOver) {
+                restartGame();
+            }
+        });
+        
+        // Click support for desktop
+        canvas.addEventListener('click', (e) => {
+            if (!gameStarted && startScreen.style.display !== 'none') {
+                startGame();
+            } else if (gameStarted && !gameOver) {
+                cow.jump();
+            } else if (gameOver) {
+                restartGame();
+            }
+        });
+        
+        // Initial draw
+        drawBackground();
+        cow.draw();
+    </script>
+</body>
+</html>
